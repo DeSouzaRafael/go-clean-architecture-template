@@ -1,0 +1,167 @@
+definitions:
+  entity.UserEntity:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  entity.response:
+    properties:
+      error:
+        example: message
+        type: string
+    type: object
+  v0.userRequest:
+    properties:
+      name:
+        example: user name
+        type: string
+      phone:
+        example: "+551199999999"
+        type: string
+    required:
+    - name
+    - phone
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Template Clean Architecture Golang
+  title: go-clean-architecture-template API
+  version: "1.0"
+paths:
+  /v0/user:
+    post:
+      consumes:
+      - application/json
+      description: add new user
+      operationId: create
+      parameters:
+      - description: Set up users
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v0.userRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.UserEntity'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/entity.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/entity.response'
+      summary: Create User
+      tags:
+      - users
+  /v0/user/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a user by its UUID.
+      operationId: deleteUser
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User successfully deleted
+        "400":
+          description: Invalid UUID format
+          schema:
+            $ref: '#/definitions/entity.response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/entity.response'
+      summary: Delete User
+      tags:
+      - users
+    get:
+      consumes:
+      - application/json
+      description: Search for a user by its UUID.
+      operationId: getUser
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Returns the found user entity
+          schema:
+            $ref: '#/definitions/entity.UserEntity'
+        "400":
+          description: Invalid UUID format
+          schema:
+            $ref: '#/definitions/entity.response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/entity.response'
+      summary: Get User
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: update existing user details
+      operationId: updateUser
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update user details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v0.userRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User Successfully updated
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/entity.response'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/entity.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/entity.response'
+      summary: Update User
+      tags:
+      - users
+swagger: "2.0"
