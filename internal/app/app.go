@@ -11,7 +11,7 @@ import (
 	"github.com/DeSouzaRafael/go-clean-architecture-template/infra/logger"
 	"github.com/DeSouzaRafael/go-clean-architecture-template/infra/postgres"
 	"github.com/DeSouzaRafael/go-clean-architecture-template/infra/postgres/repository"
-	api "github.com/DeSouzaRafael/go-clean-architecture-template/internal/controller/api"
+	"github.com/DeSouzaRafael/go-clean-architecture-template/internal/controller/rest"
 	"github.com/DeSouzaRafael/go-clean-architecture-template/internal/entity"
 	"github.com/DeSouzaRafael/go-clean-architecture-template/internal/usecase"
 	"github.com/labstack/echo/v4"
@@ -47,7 +47,7 @@ func Run(cfg *config.Config) {
 
 	// HTTP Server
 	handler := echo.New()
-	api.NewRouter(handler, logger, httpserver.StartPort(cfg.HTTP.Port), appUseCases)
+	rest.NewRouter(handler, logger, httpserver.StartPort(cfg.HTTP.Port), appUseCases)
 	httpServer := httpserver.New(handler, httpserver.Port(cfg.HTTP.Port))
 
 	// Waiting signal

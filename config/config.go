@@ -40,6 +40,13 @@ func NewConfig() (*Config, error) {
 		log.Fatal("Error loading .env file")
 	}
 
+	var pgURL string
+	if os.Getenv("ENV") == "local" {
+		pgURL = "postgres://postgres:postgres@localhost:5433/postgres"
+	} else {
+		pgURL = os.Getenv("PG_URL")
+	}
+
 	cfg := &Config{
 		App: App{
 			Name:    os.Getenv("APP_NAME"),
@@ -52,7 +59,7 @@ func NewConfig() (*Config, error) {
 			Level: os.Getenv("LOG_LEVEL"),
 		},
 		PG: PG{
-			URL: os.Getenv("PG_URL"),
+			URL: pgURL,
 		},
 	}
 

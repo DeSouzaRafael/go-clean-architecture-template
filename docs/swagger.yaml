@@ -1,42 +1,36 @@
 definitions:
-  entity.UserEntity:
+  input.UserInput:
     properties:
-      created_at:
+      name:
+        example: user name
         type: string
-      deleted_at:
+      phone:
+        example: "+5511999999999"
         type: string
+    required:
+    - name
+    - phone
+    type: object
+  output.ResponseError:
+    properties:
+      error:
+        example: message
+        type: string
+    type: object
+  output.UserOutput:
+    properties:
       id:
         type: string
       name:
         type: string
       phone:
         type: string
-      updated_at:
-        type: string
-    type: object
-  entity.response:
-    properties:
-      error:
-        example: message
-        type: string
-    type: object
-  v0.userRequest:
-    properties:
-      name:
-        example: user name
-        type: string
-      phone:
-        example: "+551199999999"
-        type: string
-    required:
-    - name
-    - phone
     type: object
 host: localhost:8080
 info:
   contact: {}
-  description: Template Clean Architecture Golang
-  title: go-clean-architecture-template API
+  description: Template Golang
+  title: Go Clean Architecture Template API
   version: "1.0"
 paths:
   /v0/user:
@@ -48,25 +42,25 @@ paths:
       parameters:
       - description: Set up users
         in: body
-        name: request
+        name: user
         required: true
         schema:
-          $ref: '#/definitions/v0.userRequest'
+          $ref: '#/definitions/input.UserInput'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/entity.UserEntity'
+            $ref: '#/definitions/output.UserOutput'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/entity.response'
+            $ref: '#/definitions/output.ResponseError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/entity.response'
+            $ref: '#/definitions/output.ResponseError'
       summary: Create User
       tags:
       - users
@@ -90,11 +84,11 @@ paths:
         "400":
           description: Invalid UUID format
           schema:
-            $ref: '#/definitions/entity.response'
+            $ref: '#/definitions/output.ResponseError'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/entity.response'
+            $ref: '#/definitions/output.ResponseError'
       summary: Delete User
       tags:
       - users
@@ -113,17 +107,17 @@ paths:
       - application/json
       responses:
         "200":
-          description: Returns the found user entity
+          description: Returns the found user
           schema:
-            $ref: '#/definitions/entity.UserEntity'
+            $ref: '#/definitions/output.UserOutput'
         "400":
           description: Invalid UUID format
           schema:
-            $ref: '#/definitions/entity.response'
+            $ref: '#/definitions/output.ResponseError'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/entity.response'
+            $ref: '#/definitions/output.ResponseError'
       summary: Get User
       tags:
       - users
@@ -143,7 +137,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/v0.userRequest'
+          $ref: '#/definitions/input.UserInput'
       produces:
       - application/json
       responses:
@@ -152,15 +146,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/entity.response'
+            $ref: '#/definitions/output.ResponseError'
         "404":
           description: User not found
           schema:
-            $ref: '#/definitions/entity.response'
+            $ref: '#/definitions/output.ResponseError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/entity.response'
+            $ref: '#/definitions/output.ResponseError'
       summary: Update User
       tags:
       - users

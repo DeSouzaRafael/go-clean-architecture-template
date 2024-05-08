@@ -2,6 +2,7 @@ package rest
 
 import (
 	"github.com/DeSouzaRafael/go-clean-architecture-template/infra/logger"
+	"github.com/DeSouzaRafael/go-clean-architecture-template/infra/validator"
 	v0 "github.com/DeSouzaRafael/go-clean-architecture-template/internal/controller/rest/routers/v0"
 	"github.com/DeSouzaRafael/go-clean-architecture-template/internal/usecase"
 	"github.com/labstack/echo/v4"
@@ -11,13 +12,13 @@ import (
 
 // NewRouter -.
 // Swagger spec:
-// @title       go-clean-architecture-template API
-// @description Template Clean Architecture Golang
+// @title       Go Clean Architecture Template API
+// @description Template Golang
 // @version     1.0
 // @host        localhost:8080
 // @BasePath
 func NewRouter(handler *echo.Echo, logger logger.Interface, port string, useCases usecase.UseCases) {
-
+	validator := validator.NewValidator()
 	// CORS
 	handler.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"}, // all
@@ -29,7 +30,7 @@ func NewRouter(handler *echo.Echo, logger logger.Interface, port string, useCase
 	handler.GET("/docs/*", echoSwagger.WrapHandler)
 
 	v0Group := handler.Group("/v0")
-	v0.NewUserRoutes(v0Group, logger, useCases.UserUseCase())
+	v0.NewUserRoutes(v0Group, logger, validator, useCases.UserUseCase())
 
 	handler.Logger.Fatal(handler.Start(port))
 }

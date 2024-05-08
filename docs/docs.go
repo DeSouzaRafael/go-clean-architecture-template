@@ -32,11 +32,11 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "description": "Set up users",
-                        "name": "request",
+                        "name": "user",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/v0.userRequest"
+                            "$ref": "#/definitions/input.UserInput"
                         }
                     }
                 ],
@@ -44,19 +44,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/entity.UserEntity"
+                            "$ref": "#/definitions/output.UserOutput"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/entity.response"
+                            "$ref": "#/definitions/output.ResponseError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/entity.response"
+                            "$ref": "#/definitions/output.ResponseError"
                         }
                     }
                 }
@@ -87,21 +87,21 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Returns the found user entity",
+                        "description": "Returns the found user",
                         "schema": {
-                            "$ref": "#/definitions/entity.UserEntity"
+                            "$ref": "#/definitions/output.UserOutput"
                         }
                     },
                     "400": {
                         "description": "Invalid UUID format",
                         "schema": {
-                            "$ref": "#/definitions/entity.response"
+                            "$ref": "#/definitions/output.ResponseError"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/entity.response"
+                            "$ref": "#/definitions/output.ResponseError"
                         }
                     }
                 }
@@ -133,7 +133,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/v0.userRequest"
+                            "$ref": "#/definitions/input.UserInput"
                         }
                     }
                 ],
@@ -144,19 +144,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/entity.response"
+                            "$ref": "#/definitions/output.ResponseError"
                         }
                     },
                     "404": {
                         "description": "User not found",
                         "schema": {
-                            "$ref": "#/definitions/entity.response"
+                            "$ref": "#/definitions/output.ResponseError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/entity.response"
+                            "$ref": "#/definitions/output.ResponseError"
                         }
                     }
                 }
@@ -190,13 +190,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid UUID format",
                         "schema": {
-                            "$ref": "#/definitions/entity.response"
+                            "$ref": "#/definitions/output.ResponseError"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/entity.response"
+                            "$ref": "#/definitions/output.ResponseError"
                         }
                     }
                 }
@@ -204,39 +204,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "entity.UserEntity": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "deleted_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "phone": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "entity.response": {
-            "type": "object",
-            "properties": {
-                "error": {
-                    "type": "string",
-                    "example": "message"
-                }
-            }
-        },
-        "v0.userRequest": {
+        "input.UserInput": {
             "type": "object",
             "required": [
                 "name",
@@ -249,7 +217,30 @@ const docTemplate = `{
                 },
                 "phone": {
                     "type": "string",
-                    "example": "+551199999999"
+                    "example": "+5511999999999"
+                }
+            }
+        },
+        "output.ResponseError": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "message"
+                }
+            }
+        },
+        "output.UserOutput": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
                 }
             }
         }
@@ -262,8 +253,8 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost:8080",
 	BasePath:         "",
 	Schemes:          []string{},
-	Title:            "go-clean-architecture-template API",
-	Description:      "Template Clean Architecture Golang",
+	Title:            "Go Clean Architecture Template API",
+	Description:      "Template Golang",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

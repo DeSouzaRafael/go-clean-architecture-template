@@ -1,4 +1,4 @@
-// internal/v0/user_routes_test.go
+// user_view_test.go
 package v0
 
 import (
@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/DeSouzaRafael/go-clean-architecture-template/infra/logger"
+	"github.com/DeSouzaRafael/go-clean-architecture-template/infra/validator"
 	"github.com/DeSouzaRafael/go-clean-architecture-template/internal/entity"
 	"github.com/DeSouzaRafael/go-clean-architecture-template/mocks"
 	"github.com/golang/mock/gomock"
@@ -23,10 +24,11 @@ func TestNewUserRoutes(t *testing.T) {
 
 	mockUseCase := mocks.NewMockUser(ctrl)
 	l := logger.NewLogger("info")
+	v := validator.NewValidator()
 
 	e := echo.New()
 	v0Group := e.Group("/v0")
-	NewUserRoutes(v0Group, l, mockUseCase)
+	NewUserRoutes(v0Group, l, v, mockUseCase)
 
 	// Verify that routes are configured correctly
 	assertRouteExists(t, e, http.MethodGet, "/v0/user/:id")
@@ -52,6 +54,7 @@ func TestGetUser(t *testing.T) {
 
 	mockUseCase := mocks.NewMockUser(ctrl)
 	l := logger.NewLogger("info")
+	v := validator.NewValidator()
 
 	e := echo.New()
 	userID := uuid.New()
@@ -69,7 +72,7 @@ func TestGetUser(t *testing.T) {
 	c.SetParamNames("id")
 	c.SetParamValues(userID.String())
 
-	r := userRoutes{usecase: mockUseCase, logger: l}
+	r := userRoutes{usecase: mockUseCase, logger: l, validator: v}
 	err := r.get(c)
 
 	if assert.NoError(t, err) {
@@ -84,6 +87,7 @@ func TestGetUser_InternalServerError(t *testing.T) {
 
 	mockUseCase := mocks.NewMockUser(ctrl)
 	l := logger.NewLogger("info")
+	v := validator.NewValidator()
 
 	e := echo.New()
 	userID := uuid.New()
@@ -97,7 +101,7 @@ func TestGetUser_InternalServerError(t *testing.T) {
 	c.SetParamNames("id")
 	c.SetParamValues(userID.String())
 
-	r := &userRoutes{usecase: mockUseCase, logger: l}
+	r := &userRoutes{usecase: mockUseCase, logger: l, validator: v}
 	err := r.get(c)
 
 	if assert.NoError(t, err) {
@@ -112,6 +116,7 @@ func TestGetUser_InvalidUUID(t *testing.T) {
 
 	mockUseCase := mocks.NewMockUser(ctrl)
 	l := logger.NewLogger("info")
+	v := validator.NewValidator()
 
 	e := echo.New()
 
@@ -122,7 +127,7 @@ func TestGetUser_InvalidUUID(t *testing.T) {
 	c.SetParamNames("id")
 	c.SetParamValues("invalid-uuid")
 
-	r := &userRoutes{usecase: mockUseCase, logger: l}
+	r := &userRoutes{usecase: mockUseCase, logger: l, validator: v}
 	err := r.get(c)
 
 	if assert.NoError(t, err) {
@@ -137,13 +142,14 @@ func TestCreateUser(t *testing.T) {
 
 	mockUseCase := mocks.NewMockUser(ctrl)
 	l := logger.NewLogger("info")
+	v := validator.NewValidator()
 
 	e := echo.New()
-	reqBody := `{"name": "User Name", "phone": "+551199999999"}`
+	reqBody := `{"name": "User Name", "phone": "+5511999999999"}`
 	user := entity.UserEntity{
 		ID:    uuid.New(),
 		Name:  "User Name",
-		Phone: "+551199999999",
+		Phone: "+5511999999999",
 	}
 
 	mockUseCase.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(user, nil)
@@ -154,7 +160,7 @@ func TestCreateUser(t *testing.T) {
 	c := e.NewContext(req, rec)
 	c.SetPath("/v0/user")
 
-	r := &userRoutes{usecase: mockUseCase, logger: l}
+	r := &userRoutes{usecase: mockUseCase, logger: l, validator: v}
 	err := r.create(c)
 
 	if assert.NoError(t, err) {
@@ -169,6 +175,7 @@ func TestCreateUser_InvalidRequestBody(t *testing.T) {
 
 	mockUseCase := mocks.NewMockUser(ctrl)
 	l := logger.NewLogger("info")
+	v := validator.NewValidator()
 
 	e := echo.New()
 
@@ -178,12 +185,40 @@ func TestCreateUser_InvalidRequestBody(t *testing.T) {
 	c := e.NewContext(req, rec)
 	c.SetPath("/v0/user")
 
-	r := &userRoutes{usecase: mockUseCase, logger: l}
+	r := &userRoutes{usecase: mockUseCase, logger: l, validator: v}
 	err := r.create(c)
 
 	if assert.NoError(t, err) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
 		assert.Contains(t, rec.Body.String(), `"error":"invalid request body"`)
+	}
+}
+
+func TestCreateUser_InvalidInput(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUseCase := mocks.NewMockUser(ctrl)
+	l := logger.NewLogger("info")
+
+	e := echo.New()
+	reqBody := `{"name": "", "phone": "+5511999999999"}`
+	validator := validator.NewValidator()
+
+	req := httptest.NewRequest(http.MethodPut, "/v0/user/"+entity.UserEntity{}.ID.String(), strings.NewReader(reqBody))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/v0/user/:id")
+	c.SetParamNames("id")
+	c.SetParamValues(entity.UserEntity{}.ID.String())
+
+	r := &userRoutes{usecase: mockUseCase, logger: l, validator: validator}
+	err := r.create(c)
+
+	if assert.NoError(t, err) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+		assert.Contains(t, rec.Body.String(), `{"error":"invalid request data: Field validation for 'Name' failed on the 'required' tag."}`+"\n")
 	}
 }
 
@@ -193,9 +228,10 @@ func TestCreateUser_InternalServerError(t *testing.T) {
 
 	mockUseCase := mocks.NewMockUser(ctrl)
 	l := logger.NewLogger("info")
+	v := validator.NewValidator()
 
 	e := echo.New()
-	reqBody := `{"name": "John Doe", "phone": "+551199999999"}`
+	reqBody := `{"name": "User Name", "phone": "+5511999999999"}`
 
 	mockUseCase.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(entity.UserEntity{}, fmt.Errorf("some error"))
 
@@ -205,7 +241,7 @@ func TestCreateUser_InternalServerError(t *testing.T) {
 	c := e.NewContext(req, rec)
 	c.SetPath("/v0/user")
 
-	r := &userRoutes{usecase: mockUseCase, logger: l}
+	r := &userRoutes{usecase: mockUseCase, logger: l, validator: v}
 	err := r.create(c)
 
 	if assert.NoError(t, err) {
@@ -220,14 +256,15 @@ func TestUpdateUser(t *testing.T) {
 
 	mockUseCase := mocks.NewMockUser(ctrl)
 	l := logger.NewLogger("info")
+	v := validator.NewValidator()
 
 	e := echo.New()
 	userID := uuid.New()
-	reqBody := `{"name": "User Name", "phone": "+551199999999"}`
+	reqBody := `{"name": "User Name", "phone": "+5511999999999"}`
 	user := entity.UserEntity{
 		ID:    userID,
 		Name:  "User Name",
-		Phone: "+551199999999",
+		Phone: "+5511999999999",
 	}
 
 	mockUseCase.EXPECT().UpdateUser(gomock.Any(), user).Return(nil)
@@ -240,7 +277,7 @@ func TestUpdateUser(t *testing.T) {
 	c.SetParamNames("id")
 	c.SetParamValues(userID.String())
 
-	r := &userRoutes{usecase: mockUseCase, logger: l}
+	r := &userRoutes{usecase: mockUseCase, logger: l, validator: v}
 	err := r.update(c)
 
 	if assert.NoError(t, err) {
@@ -255,14 +292,15 @@ func TestUpdateUser_InternalServerError(t *testing.T) {
 
 	mockUseCase := mocks.NewMockUser(ctrl)
 	l := logger.NewLogger("info")
+	v := validator.NewValidator()
 
 	e := echo.New()
 	userID := uuid.New()
-	reqBody := `{"name": "Jane Doe", "phone": "+551199999999"}`
+	reqBody := `{"name": "User Name", "phone": "+5511999999999"}`
 	user := entity.UserEntity{
 		ID:    userID,
-		Name:  "Jane Doe",
-		Phone: "+551199999999",
+		Name:  "User Name",
+		Phone: "+5511999999999",
 	}
 
 	mockUseCase.EXPECT().UpdateUser(gomock.Any(), user).Return(fmt.Errorf("some error"))
@@ -275,12 +313,40 @@ func TestUpdateUser_InternalServerError(t *testing.T) {
 	c.SetParamNames("id")
 	c.SetParamValues(userID.String())
 
-	r := &userRoutes{usecase: mockUseCase, logger: l}
+	r := &userRoutes{usecase: mockUseCase, logger: l, validator: v}
 	err := r.update(c)
 
 	if assert.NoError(t, err) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
 		assert.Contains(t, rec.Body.String(), `"error":"some error"`)
+	}
+}
+
+func TestUpdateUser_InvalidInput(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUseCase := mocks.NewMockUser(ctrl)
+	l := logger.NewLogger("info")
+
+	e := echo.New()
+	reqBody := `{"name": "", "phone": "+5511999999999"}`
+	validator := validator.NewValidator()
+
+	req := httptest.NewRequest(http.MethodPut, "/v0/user/"+entity.UserEntity{}.ID.String(), strings.NewReader(reqBody))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/v0/user/:id")
+	c.SetParamNames("id")
+	c.SetParamValues(entity.UserEntity{}.ID.String())
+
+	r := &userRoutes{usecase: mockUseCase, logger: l, validator: validator}
+	err := r.update(c)
+
+	if assert.NoError(t, err) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+		assert.Contains(t, rec.Body.String(), `{"error":"invalid request data: Field validation for 'Name' failed on the 'required' tag."}`+"\n")
 	}
 }
 
@@ -290,6 +356,7 @@ func TestUpdateUser_InvalidRequestBody(t *testing.T) {
 
 	mockUseCase := mocks.NewMockUser(ctrl)
 	l := logger.NewLogger("info")
+	v := validator.NewValidator()
 
 	e := echo.New()
 	userID := uuid.New()
@@ -302,7 +369,7 @@ func TestUpdateUser_InvalidRequestBody(t *testing.T) {
 	c.SetParamNames("id")
 	c.SetParamValues(userID.String())
 
-	r := &userRoutes{usecase: mockUseCase, logger: l}
+	r := &userRoutes{usecase: mockUseCase, logger: l, validator: v}
 	err := r.update(c)
 
 	if assert.NoError(t, err) {
@@ -317,6 +384,7 @@ func TestUpdateUser_InvalidUUID(t *testing.T) {
 
 	mockUseCase := mocks.NewMockUser(ctrl)
 	l := logger.NewLogger("info")
+	v := validator.NewValidator()
 
 	e := echo.New()
 
@@ -328,7 +396,7 @@ func TestUpdateUser_InvalidUUID(t *testing.T) {
 	c.SetParamNames("id")
 	c.SetParamValues("invalid-uuid")
 
-	r := &userRoutes{usecase: mockUseCase, logger: l}
+	r := &userRoutes{usecase: mockUseCase, logger: l, validator: v}
 	err := r.update(c)
 
 	if assert.NoError(t, err) {
@@ -343,6 +411,7 @@ func TestDeleteUser(t *testing.T) {
 
 	mockUseCase := mocks.NewMockUser(ctrl)
 	l := logger.NewLogger("info")
+	v := validator.NewValidator()
 
 	e := echo.New()
 	userID := uuid.New()
@@ -356,7 +425,7 @@ func TestDeleteUser(t *testing.T) {
 	c.SetParamNames("id")
 	c.SetParamValues(userID.String())
 
-	r := &userRoutes{usecase: mockUseCase, logger: l}
+	r := &userRoutes{usecase: mockUseCase, logger: l, validator: v}
 	err := r.delete(c)
 
 	if assert.NoError(t, err) {
@@ -371,6 +440,7 @@ func TestDeleteUser_InvalidUUID(t *testing.T) {
 
 	mockUseCase := mocks.NewMockUser(ctrl)
 	l := logger.NewLogger("info")
+	v := validator.NewValidator()
 
 	e := echo.New()
 
@@ -381,7 +451,7 @@ func TestDeleteUser_InvalidUUID(t *testing.T) {
 	c.SetParamNames("id")
 	c.SetParamValues("invalid-uuid")
 
-	r := &userRoutes{usecase: mockUseCase, logger: l}
+	r := &userRoutes{usecase: mockUseCase, logger: l, validator: v}
 	err := r.delete(c)
 
 	if assert.NoError(t, err) {
@@ -396,6 +466,7 @@ func TestDeleteUser_DeleteUserError(t *testing.T) {
 
 	mockUseCase := mocks.NewMockUser(ctrl)
 	l := logger.NewLogger("info")
+	v := validator.NewValidator()
 
 	e := echo.New()
 	userID := uuid.New()
@@ -410,7 +481,7 @@ func TestDeleteUser_DeleteUserError(t *testing.T) {
 	c.SetParamNames("id")
 	c.SetParamValues(userID.String())
 
-	r := &userRoutes{usecase: mockUseCase, logger: l}
+	r := &userRoutes{usecase: mockUseCase, logger: l, validator: v}
 	err := r.delete(c)
 
 	if assert.NoError(t, err) {

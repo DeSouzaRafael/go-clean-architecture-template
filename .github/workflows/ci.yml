@@ -1,0 +1,53 @@
+name: CI
+on: pull_request
+
+jobs:
+  golangci-lint:
+    name: runner / golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.21
+      - name: golangci-lint
+        uses: reviewdog/action-golangci-lint@v2
+
+  check-dependencies:
+    name: runner / check-dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v2
+      - name: Write Go List
+        run: go list -json -m all > go.list
+      - name: Nancy
+        uses: sonatype-nexus-community/nancy-github-action@main
+        continue-on-error: true
+
+  tests:
+    name: runner / tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.21
+      - name: Unit Tests
+        run: |
+          go test \
+            -v \
+            -race \
+            -covermode atomic \
+            -coverprofile=coverage.txt \
+            ./internal/...
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4.0.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
