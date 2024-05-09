@@ -1,6 +1,8 @@
 package rest
 
 import (
+	"os"
+
 	"github.com/DeSouzaRafael/go-clean-architecture-template/infra/logger"
 	"github.com/DeSouzaRafael/go-clean-architecture-template/infra/validator"
 	v0 "github.com/DeSouzaRafael/go-clean-architecture-template/internal/controller/rest/routers/v0"
@@ -17,20 +19,30 @@ import (
 // @version     1.0
 // @host        localhost:8080
 // @BasePath
-func NewRouter(handler *echo.Echo, logger logger.Interface, port string, useCases usecase.UseCases) {
-	validator := validator.NewValidator()
-	// CORS
-	handler.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"*"}, // all
-		AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE, echo.OPTIONS},
-		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
-	}))
-	handler.Use(middleware.Recover())
+func NewRouter(h *echo.Echo, l logger.Interface, v *validator.Validator, uc usecase.UseCases) {
 
-	handler.GET("/docs/*", echoSwagger.WrapHandler)
+	h.Use(middleware.CORSWithConfig(corsConfig()))
+	h.Use(middleware.Recover())
 
-	v0Group := handler.Group("/v0")
-	v0.NewUserRoutes(v0Group, logger, validator, useCases.UserUseCase())
+	// Swagger docs
+	h.GET("/docs/*", echoSwagger.WrapHandler)
 
-	handler.Logger.Fatal(handler.Start(port))
+	// REST versioning
+	v0.NewUserRoutes(h, l, v, uc.UserUseCase())
+}
+
+func corsConfig() middleware.CORSConfig {
+	cc := middleware.CORSConfig{
+		AllowHeaders:     []string{echo.HeaderAccept, echo.HeaderAcceptEncoding, echo.HeaderAuthorization, echo.HeaderContentLength, echo.HeaderContentType, echo.HeaderOrigin, echo.HeaderXCSRFToken},
+		AllowCredentials: true,
+		ExposeHeaders:    []string{echo.HeaderAccept, echo.HeaderAcceptEncoding, echo.HeaderAuthorization, echo.HeaderContentLength, echo.HeaderContentType, echo.HeaderOrigin, echo.HeaderXCSRFToken},
+	}
+
+	if os.Getenv("ENV") == "prd" {
+		cc.AllowOrigins = []string{"https://*.your.domain.com"}
+	} else {
+		cc.AllowOrigins = []string{"*"}
+	}
+
+	return cc
 }

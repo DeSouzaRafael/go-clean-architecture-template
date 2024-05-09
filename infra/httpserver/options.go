@@ -1,16 +1,11 @@
 package httpserver
 
 import (
-	"fmt"
 	"net"
 	"time"
 )
 
 type Option func(*Server)
-
-func StartPort(port string) string {
-	return fmt.Sprintf(":%v", port)
-}
 
 func Port(port string) Option {
 	return func(s *Server) {

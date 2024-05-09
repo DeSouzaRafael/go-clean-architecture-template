@@ -27,8 +27,7 @@ func TestNewUserRoutes(t *testing.T) {
 	v := validator.NewValidator()
 
 	e := echo.New()
-	v0Group := e.Group("/v0")
-	NewUserRoutes(v0Group, l, v, mockUseCase)
+	NewUserRoutes(e, l, v, mockUseCase)
 
 	// Verify that routes are configured correctly
 	assertRouteExists(t, e, http.MethodGet, "/v0/user/:id")

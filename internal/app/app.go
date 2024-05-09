@@ -11,6 +11,7 @@ import (
 	"github.com/DeSouzaRafael/go-clean-architecture-template/infra/logger"
 	"github.com/DeSouzaRafael/go-clean-architecture-template/infra/postgres"
 	"github.com/DeSouzaRafael/go-clean-architecture-template/infra/postgres/repository"
+	"github.com/DeSouzaRafael/go-clean-architecture-template/infra/validator"
 	"github.com/DeSouzaRafael/go-clean-architecture-template/internal/controller/rest"
 	"github.com/DeSouzaRafael/go-clean-architecture-template/internal/entity"
 	"github.com/DeSouzaRafael/go-clean-architecture-template/internal/usecase"
@@ -20,7 +21,7 @@ import (
 func Run(cfg *config.Config) {
 	// Logger
 	logger := logger.NewLogger(cfg.Log.Level)
-
+	validator := validator.NewValidator()
 	// Repository
 	pg, err := postgres.NewPostgres(cfg.PG.URL)
 	if err != nil {
@@ -47,13 +48,15 @@ func Run(cfg *config.Config) {
 
 	// HTTP Server
 	handler := echo.New()
-	rest.NewRouter(handler, logger, httpserver.StartPort(cfg.HTTP.Port), appUseCases)
+
+	rest.NewRouter(handler, logger, validator, appUseCases)
 	httpServer := httpserver.New(handler, httpserver.Port(cfg.HTTP.Port))
 
 	// Waiting signal
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
+	logger.Info("Server is running...")
 	select {
 	case s := <-interrupt:
 		logger.Error(fmt.Errorf("app - Run - signal: %w" + s.String()))

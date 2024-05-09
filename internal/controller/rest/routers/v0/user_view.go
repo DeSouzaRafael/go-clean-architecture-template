@@ -20,11 +20,11 @@ type userRoutes struct {
 	validator *validator.Validator
 }
 
-func NewUserRoutes(handler *echo.Group, l logger.Interface, v *validator.Validator, uc usecase.User) {
+func NewUserRoutes(handler *echo.Echo, l logger.Interface, v *validator.Validator, uc usecase.User) {
 
 	ur := &userRoutes{uc, l, v}
 
-	g := handler.Group("/user")
+	g := handler.Group("/v0/user")
 	g.GET("/:id", ur.get)
 	g.POST("", ur.create)
 	g.PUT("/:id", ur.update)
