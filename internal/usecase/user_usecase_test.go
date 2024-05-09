@@ -14,6 +14,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNewAppUseCases(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockUserRepo(ctrl)
+	userUseCase := usecase.NewUser(mockRepo)
+
+	appUseCases := usecase.NewAppUseCases(userUseCase)
+
+	assert.NotNil(t, appUseCases)
+	assert.Equal(t, userUseCase, appUseCases.UserUseCase())
+}
+
 func TestCreateUser(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
