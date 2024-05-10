@@ -45,7 +45,8 @@ $ make run
 ```
 
 ## Project Structure
-`cmd/app`
+
+### `cmd/app`
 Contains the entry point for the application. The `main.go` file loads environment variables and hands over control to the `Run` function in `internal/app`.
 
 ### `config`
