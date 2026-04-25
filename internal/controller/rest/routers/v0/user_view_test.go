@@ -12,7 +12,7 @@ import (
 	"github.com/DeSouzaRafael/go-clean-architecture-template/infra/validator"
 	"github.com/DeSouzaRafael/go-clean-architecture-template/internal/entity"
 	"github.com/DeSouzaRafael/go-clean-architecture-template/mocks"
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"

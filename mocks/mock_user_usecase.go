@@ -10,7 +10,7 @@ import (
 
 	entity "github.com/DeSouzaRafael/go-clean-architecture-template/internal/entity"
 	usecase "github.com/DeSouzaRafael/go-clean-architecture-template/internal/usecase"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockUser is a mock of User interface.
