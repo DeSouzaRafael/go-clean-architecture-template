@@ -1,9 +1,10 @@
-FROM golang:1.24-alpine AS modules
+FROM golang:1.25.9-alpine AS modules
+
 COPY go.mod go.sum /modules/
 WORKDIR /modules
 RUN go mod download
 
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25.9-alpine AS builder
 COPY --from=modules /go/pkg /go/infra
 COPY . /app
 WORKDIR /app
