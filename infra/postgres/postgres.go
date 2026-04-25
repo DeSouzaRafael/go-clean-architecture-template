@@ -10,29 +10,35 @@ import (
 )
 
 const (
-	defaultMaxPoolSize  = 10
 	defaultConnAttempts = 10
 	defaultConnTimeout  = 10 * time.Second
 )
+
+type Options struct {
+	URL             string
+	MaxOpenConns    int
+	MaxIdleConns    int
+	ConnMaxLifetime time.Duration
+}
 
 type Postgres struct {
 	DB *gorm.DB
 }
 
-func NewPostgres(url string) (*Postgres, error) {
-
-	gormDB, err := gorm.Open(postgres.Open(url), &gorm.Config{})
+func NewPostgres(opts Options) (*Postgres, error) {
+	gormDB, err := gorm.Open(postgres.Open(opts.URL), &gorm.Config{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to open connection to the database using GORM: %w", err)
+		return nil, fmt.Errorf("failed to open DB connection: %w", err)
 	}
 
 	sqlDB, err := gormDB.DB()
 	if err != nil {
-		return nil, fmt.Errorf("failed to open DB: %w", err)
+		return nil, fmt.Errorf("failed to get sql.DB: %w", err)
 	}
-	sqlDB.SetMaxOpenConns(defaultMaxPoolSize)
-	sqlDB.SetMaxIdleConns(defaultMaxPoolSize / 2)
-	sqlDB.SetConnMaxLifetime(time.Hour)
+
+	sqlDB.SetMaxOpenConns(opts.MaxOpenConns)
+	sqlDB.SetMaxIdleConns(opts.MaxIdleConns)
+	sqlDB.SetConnMaxLifetime(opts.ConnMaxLifetime)
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultConnTimeout)
 	defer cancel()
@@ -46,7 +52,7 @@ func NewPostgres(url string) (*Postgres, error) {
 		}
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to the database after %d attempts: %w", defaultConnAttempts, err)
+		return nil, fmt.Errorf("failed to connect after %d attempts: %w", defaultConnAttempts, err)
 	}
 
 	return &Postgres{DB: gormDB}, nil
@@ -54,8 +60,7 @@ func NewPostgres(url string) (*Postgres, error) {
 
 func (p *Postgres) Close() {
 	if p.DB != nil {
-		sqlDB, err := p.DB.DB()
-		if err == nil {
+		if sqlDB, err := p.DB.DB(); err == nil {
 			sqlDB.Close()
 		}
 	}

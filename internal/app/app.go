@@ -19,54 +19,47 @@ import (
 )
 
 func Run(cfg *config.Config) {
-	// Logger
-	logger := logger.NewLogger(cfg.Log.Level)
-	validator := validator.NewValidator()
-	// Repository
-	pg, err := postgres.NewPostgres(cfg.PG.URL)
+	l := logger.NewLogger(cfg.Log.Level)
+	v := validator.NewValidator()
+
+	pg, err := postgres.NewPostgres(postgres.Options{
+		URL:             cfg.PG.URL,
+		MaxOpenConns:    cfg.PG.MaxOpenConns,
+		MaxIdleConns:    cfg.PG.MaxIdleConns,
+		ConnMaxLifetime: cfg.PG.ConnMaxLifetime,
+	})
 	if err != nil {
-		logger.Fatal(fmt.Errorf("app - Run - NewPostgresRepository: %w", err))
+		l.Fatal(fmt.Errorf("app - Run - NewPostgres: %w", err))
 	}
 	defer pg.Close()
 
-	// Auto Migration
 	if err := pg.DB.AutoMigrate(
 		&entity.UserEntity{},
-		// add models
 	); err != nil {
-		logger.Fatal(fmt.Errorf("app - Run - AutoMigrate: %w", err))
+		l.Fatal(fmt.Errorf("app - Run - AutoMigrate: %w", err))
 	}
 
-	// UseCases
-	userUseCase := usecase.NewUser(
-		repository.NewUserRepo(pg.DB),
-	)
+	userUseCase := usecase.NewUser(repository.NewUserRepo(pg.DB))
+	appUseCases := usecase.NewAppUseCases(userUseCase)
 
-	appUseCases := usecase.NewAppUseCases(
-		userUseCase,
-	)
-
-	// HTTP Server
 	handler := echo.New()
-
-	rest.NewRouter(handler, logger, validator, appUseCases)
+	rest.NewRouter(handler, l, v, appUseCases, cfg.App.Env)
 	httpServer := httpserver.New(handler, httpserver.Port(cfg.HTTP.Port))
 
-	// Waiting signal
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
-	logger.Info("Server is running...")
+	l.Info("Server is running...")
 	select {
 	case s := <-interrupt:
-		logger.Error(fmt.Errorf("app - Run - signal: %w" + s.String()))
+		l.Info("app - Run - signal: " + s.String())
+		if err := httpServer.Shutdown(); err != nil {
+			l.Error(fmt.Errorf("app - Run - httpServer.Shutdown: %w", err))
+		}
 	case err = <-httpServer.Notify():
-		logger.Error(fmt.Errorf("app - Run - httpServer.Notify: %w", err))
-
-		// Shutdown
-		err = httpServer.Shutdown()
-		if err != nil {
-			logger.Error(fmt.Errorf("app - Run - httpServer.Shutdown: %w", err))
+		l.Error(fmt.Errorf("app - Run - httpServer.Notify: %w", err))
+		if err := httpServer.Shutdown(); err != nil {
+			l.Error(fmt.Errorf("app - Run - httpServer.Shutdown: %w", err))
 		}
 	}
 }
