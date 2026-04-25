@@ -10,10 +10,10 @@ import (
 	"github.com/DeSouzaRafael/go-clean-architecture-template/infra/httpserver"
 	"github.com/DeSouzaRafael/go-clean-architecture-template/infra/logger"
 	"github.com/DeSouzaRafael/go-clean-architecture-template/infra/postgres"
+	postgresModel "github.com/DeSouzaRafael/go-clean-architecture-template/infra/postgres/model"
 	"github.com/DeSouzaRafael/go-clean-architecture-template/infra/postgres/repository"
 	"github.com/DeSouzaRafael/go-clean-architecture-template/infra/validator"
 	"github.com/DeSouzaRafael/go-clean-architecture-template/internal/controller/rest"
-	"github.com/DeSouzaRafael/go-clean-architecture-template/internal/entity"
 	"github.com/DeSouzaRafael/go-clean-architecture-template/internal/usecase"
 	"github.com/labstack/echo/v4"
 )
@@ -33,10 +33,10 @@ func Run(cfg *config.Config) {
 	}
 	defer pg.Close()
 
-	if err := pg.DB.AutoMigrate(
-		&entity.UserEntity{},
-	); err != nil {
-		l.Fatal(fmt.Errorf("app - Run - AutoMigrate: %w", err))
+	if cfg.App.Env != "prd" {
+		if err := pg.DB.AutoMigrate(&postgresModel.UserModel{}); err != nil {
+			l.Fatal(fmt.Errorf("app - Run - AutoMigrate: %w", err))
+		}
 	}
 
 	userUseCase := usecase.NewUser(repository.NewUserRepo(pg.DB))
