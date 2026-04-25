@@ -64,7 +64,7 @@ func TestGetUser(t *testing.T) {
 
 	mockUseCase.EXPECT().GetUserById(gomock.Any(), entity.UserEntity{ID: userID}).Return(user, nil)
 
-	req := httptest.NewRequest(http.MethodGet, "/v0/user/"+userID.String(), nil)
+	req := httptest.NewRequest(http.MethodGet, "/v0/user/"+userID.String(), http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	c.SetPath("/v0/user/:id")
@@ -93,7 +93,7 @@ func TestGetUser_InternalServerError(t *testing.T) {
 
 	mockUseCase.EXPECT().GetUserById(gomock.Any(), entity.UserEntity{ID: userID}).Return(entity.UserEntity{}, fmt.Errorf("some error"))
 
-	req := httptest.NewRequest(http.MethodGet, "/v0/user/"+userID.String(), nil)
+	req := httptest.NewRequest(http.MethodGet, "/v0/user/"+userID.String(), http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	c.SetPath("/v0/user/:id")
@@ -119,7 +119,7 @@ func TestGetUser_InvalidUUID(t *testing.T) {
 
 	e := echo.New()
 
-	req := httptest.NewRequest(http.MethodGet, "/v0/user/invalid-uuid", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v0/user/invalid-uuid", http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	c.SetPath("/v0/user/:id")
@@ -417,7 +417,7 @@ func TestDeleteUser(t *testing.T) {
 
 	mockUseCase.EXPECT().DeleteUser(gomock.Any(), entity.UserEntity{ID: userID}).Return(nil)
 
-	req := httptest.NewRequest(http.MethodDelete, "/v0/user/"+userID.String(), nil)
+	req := httptest.NewRequest(http.MethodDelete, "/v0/user/"+userID.String(), http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	c.SetPath("/v0/user/:id")
@@ -443,7 +443,7 @@ func TestDeleteUser_InvalidUUID(t *testing.T) {
 
 	e := echo.New()
 
-	req := httptest.NewRequest(http.MethodDelete, "/v0/user/invalid-uuid", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/v0/user/invalid-uuid", http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	c.SetPath("/v0/user/:id")
@@ -473,7 +473,7 @@ func TestDeleteUser_DeleteUserError(t *testing.T) {
 
 	mockUseCase.EXPECT().DeleteUser(gomock.Any(), user).Return(fmt.Errorf("failed to delete user"))
 
-	req := httptest.NewRequest(http.MethodDelete, "/v0/user/"+userID.String(), nil)
+	req := httptest.NewRequest(http.MethodDelete, "/v0/user/"+userID.String(), http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	c.SetPath("/v0/user/:id")

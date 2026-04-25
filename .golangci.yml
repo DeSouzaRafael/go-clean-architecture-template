@@ -8,10 +8,7 @@ linters:
     - govet
     - errcheck
     - staticcheck
-    - unused
-    - gosimple
     - ineffassign
-    - typecheck
     - bodyclose
     - exhaustive
     - gocritic
@@ -31,6 +28,9 @@ linters-settings:
       - diagnostic
       - performance
       - style
+    settings:
+      hugeParam:
+        sizeThreshold: 512
 
   errcheck:
     check-type-assertions: true
