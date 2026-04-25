@@ -1,0 +1,7 @@
+ignore:
+  - "mocks/"
+  - "docs/"
+  - "cmd/"
+  - "infra/postgres/postgres.go"
+  - "infra/postgres/repository/"
+  - "internal/app/"

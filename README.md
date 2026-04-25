@@ -2,9 +2,11 @@
 
 Clean Architecture template for Golang
 
+[![CI](https://github.com/DeSouzaRafael/go-clean-architecture-template/actions/workflows/ci.yml/badge.svg)](https://github.com/DeSouzaRafael/go-clean-architecture-template/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/DeSouzaRafael/go-clean-architecture-template/branch/main/graph/badge.svg?token=PNP58LYNPA)](https://codecov.io/gh/DeSouzaRafael/go-clean-architecture-template)
 [![Go Report Card](https://goreportcard.com/badge/github.com/DeSouzaRafael/go-clean-architecture-template)](https://goreportcard.com/report/github.com/DeSouzaRafael/go-clean-architecture-template)
-[![License](https://img.shields.io/github/license/evrone/go-clean-template.svg)](https://github.com/DeSouzaRafael/go-clean-architecture-template/blob/main/LICENSE)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/DeSouzaRafael/go-clean-architecture-template)](go.mod)
+[![License](https://img.shields.io/github/license/DeSouzaRafael/go-clean-architecture-template)](LICENSE)
 [![GitHub Release](https://img.shields.io/github/v/release/DeSouzaRafael/go-clean-architecture-template)](https://github.com/DeSouzaRafael/go-clean-architecture-template/releases/)
 
 ## Overview
@@ -12,89 +14,99 @@ Clean Architecture template for Golang
 Production-ready Go template that enforces Clean Architecture from the first line of code. The structure makes it impossible to accidentally couple business logic to frameworks or databases — the compiler will tell you if you do.
 
 **What this gives you out of the box:**
-- REST API with versioned routes (`/v0/`, `/v1/`, ...)
-- PostgreSQL via GORM with a generic `BaseRepo[T]` for CRUD
-- Structured JSON logging (zerolog)
-- Request validation (go-playground/validator)
-- Swagger UI at `/docs/*`
-- Health check at `/health`
-- Graceful shutdown on SIGTERM/SIGINT
-- GitHub Actions CI: build, test, lint, security scan, tidy check
-- Docker Compose for local development
+
+| Feature | Details |
+|---|---|
+| REST API | Versioned routes (`/v0/`, `/v1/`, ...) via [Echo](https://echo.labstack.com/) |
+| Database | PostgreSQL via GORM with generic `BaseRepo[T]` |
+| Logging | Structured JSON via [zerolog](https://github.com/rs/zerolog) |
+| Validation | Request validation via [go-playground/validator](https://github.com/go-playground/validator) |
+| API Docs | Swagger UI at `/docs/index.html` |
+| Observability | Health check at `/health` |
+| Shutdown | Graceful on SIGTERM/SIGINT |
+| CI | Build, test, lint, security scan, tidy check |
+| Testing | 80%+ coverage with unit tests, mocks via [go.uber.org/mock](https://github.com/uber-go/mock) |
 
 ## Table of Contents
 
 - [Quick Start](#quick-start)
 - [Environment Variables](#environment-variables)
 - [Project Structure](#project-structure)
+- [Request Flow](#request-flow)
 - [Architecture](#architecture)
 - [Dependency Injection](#dependency-injection)
+- [Testing](#testing)
 - [Adding a New Domain](#adding-a-new-domain)
 - [API Versioning](#api-versioning)
 - [Development Commands](#development-commands)
 
 ## Quick Start
 
-```sh
-# 1. Copy env template
-cp .env.example .env
+### Option 1 — Docker (recommended)
 
-# 2. Start postgres + app
-make run
+```sh
+cp .env.example .env
+docker-compose up -d
 ```
 
-The API will be available at `http://localhost:8082` (or the `HTTP_PORT` you set in `.env`).
+App starts at `http://localhost:8082`. Postgres on port `5434`.
+
+### Option 2 — Local (requires Go 1.25+)
+
+```sh
+cp .env.example .env
+# Start only postgres
+docker-compose up -d postgres
+# Run app
+make run
+```
 
 Swagger UI: `http://localhost:8082/docs/index.html`
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and adjust as needed.
-
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `ENV` | yes | — | `local` / `dev` / `prd` — controls AutoMigrate and CORS |
-| `APP_NAME` | yes | — | Application name (used in logs) |
+| `APP_NAME` | yes | — | Application name |
 | `APP_VERSION` | yes | — | Application version |
-| `HTTP_PORT` | yes | — | Port the server listens on |
+| `HTTP_PORT` | yes | `8082` | Port the server binds to |
 | `LOG_LEVEL` | yes | — | `debug` / `info` / `warn` / `error` |
-| `PG_URL` | yes | — | Full PostgreSQL DSN |
+| `PG_URL` | yes | — | PostgreSQL DSN (e.g. `postgres://user:pass@host:5432/db`) |
 | `PG_MAX_OPEN_CONNS` | no | `10` | Connection pool max open |
 | `PG_MAX_IDLE_CONNS` | no | `5` | Connection pool max idle |
-| `PG_CONN_MAX_LIFETIME_SEC` | no | `3600` | Connection max lifetime in seconds |
+| `PG_CONN_MAX_LIFETIME_SEC` | no | `3600` | Connection lifetime in seconds |
 
-> When `ENV=prd`, AutoMigrate is skipped at startup. Use [golang-migrate](https://github.com/golang-migrate/migrate) or similar for production schema changes.
+> `ENV=prd` skips `AutoMigrate` at startup. Use [golang-migrate](https://github.com/golang-migrate/migrate) for production schema management.
 
 ## Project Structure
 
 ```
 .
-├── cmd/app/                        # Binary entry point
-├── config/                         # Config struct loaded from env
-├── docs/                           # Auto-generated Swagger (do not edit)
+├── cmd/app/                        # Binary entry point (main.go)
+├── config/                         # Typed config loaded from env vars
+├── docs/                           # Auto-generated Swagger — do not edit
 ├── infra/
-│   ├── httpserver/                 # HTTP server with graceful shutdown
-│   ├── logger/                     # zerolog wrapper
+│   ├── httpserver/                 # net/http wrapper with graceful shutdown
+│   ├── logger/                     # zerolog implementation of logger.Interface
 │   ├── postgres/
-│   │   ├── model/                  # GORM models + entity↔model mappers
-│   │   └── repository/             # BaseRepo[T] + domain-specific repos
-│   └── validator/                  # Request validation wrapper
+│   │   ├── model/                  # GORM models + bidirectional mappers
+│   │   └── repository/             # Generic BaseRepo[T] + domain repos
+│   └── validator/                  # go-playground/validator wrapper
 ├── internal/
-│   ├── app/                        # Wiring: infra + repos + use cases + server
+│   ├── app/                        # Composition root — wires all layers
 │   ├── controller/rest/
-│   │   ├── input/                  # Request DTOs
-│   │   ├── output/                 # Response DTOs
-│   │   └── routers/v0/             # Route handlers
-│   ├── entity/                     # Pure domain structs (zero framework tags)
+│   │   ├── input/                  # Request DTOs with validation
+│   │   ├── output/                 # Response DTOs and error helpers
+│   │   └── routers/v0/             # Versioned route handlers
+│   ├── entity/                     # Pure domain structs (no framework tags)
 │   └── usecase/                    # Business logic + interface contracts
-└── mocks/                          # Generated mocks (go.uber.org/mock)
+└── mocks/                          # go.uber.org/mock generated mocks
 ```
 
-### Key Design Decisions
+### Key Packages
 
-**`internal/entity/` — pure domain structs**
-
-Entities have no GORM tags, no JSON tags, no `TableName()`. They are plain Go structs that carry domain data between layers. Serialization is handled by output DTOs; persistence is handled by GORM models.
+**`internal/entity/`** — Pure domain structs with no GORM tags, no JSON tags. Used across all layers as the canonical data type. Serialization is handled by output DTOs; persistence by GORM models.
 
 ```go
 type UserEntity struct {
@@ -107,9 +119,7 @@ type UserEntity struct {
 }
 ```
 
-**`infra/postgres/model/` — GORM models**
-
-GORM concerns live here: column tags, `TableName()`, soft-delete type, default expressions. Each model file also contains `ToXxxModel` and `ToXxxEntity` mapper functions.
+**`infra/postgres/model/`** — GORM concerns are isolated here. Each model includes column tags, `TableName()`, soft-delete via `gorm.DeletedAt`, and bidirectional mapper functions.
 
 ```go
 type UserModel struct {
@@ -120,16 +130,16 @@ type UserModel struct {
     UpdatedAt time.Time      `gorm:"autoUpdateTime"`
     DeletedAt gorm.DeletedAt `gorm:"index"`
 }
+
+func (UserModel) TableName() string { return "user" }
+func ToUserModel(e entity.UserEntity) UserModel   { ... }
+func ToUserEntity(m UserModel) entity.UserEntity  { ... }
 ```
 
-**`infra/postgres/repository/BaseRepo[T]` — generic CRUD**
-
-`BaseRepo[T any]` provides `Get`, `Create`, `Update`, `Delete` for any GORM model. Domain repos embed it and expose only domain-typed methods:
+**`infra/postgres/repository/BaseRepo[T]`** — Generic CRUD. Domain repos embed it and add entity-typed methods:
 
 ```go
-type UserRepo struct {
-    *BaseRepo[model.UserModel]
-}
+type UserRepo struct{ *BaseRepo[model.UserModel] }
 
 func (r *UserRepo) GetById(ctx context.Context, e entity.UserEntity) (entity.UserEntity, error) {
     m, err := r.BaseRepo.Get(ctx, e.ID)
@@ -137,75 +147,101 @@ func (r *UserRepo) GetById(ctx context.Context, e entity.UserEntity) (entity.Use
 }
 ```
 
-**`internal/usecase/interfaces.go` — single source of truth**
+**`internal/usecase/interfaces.go`** — Single source of truth for all cross-layer contracts. Controllers and use cases depend only on these interfaces.
 
-All cross-layer contracts live here. The `UseCases` aggregator is the only type injected into the router — controllers never depend on concrete implementations.
+## Request Flow
 
-```go
-type User interface {
-    CreateUser(context.Context, entity.UserEntity) (entity.UserEntity, error)
-    UpdateUser(context.Context, entity.UserEntity) error
-    DeleteUser(context.Context, entity.UserEntity) error
-    GetUserById(context.Context, entity.UserEntity) (entity.UserEntity, error)
-}
-
-type UserRepo interface {
-    Create(context.Context, entity.UserEntity) (entity.UserEntity, error)
-    Update(context.Context, entity.UserEntity) error
-    DeleteById(context.Context, entity.UserEntity) error
-    GetById(context.Context, entity.UserEntity) (entity.UserEntity, error)
-}
-
-type UseCases interface {
-    UserUseCase() User
-}
+```
+HTTP Request
+    │
+    ▼
+Echo router (internal/controller/rest/router.go)
+    │  middleware: CORS, Recover
+    ▼
+Route handler (internal/controller/rest/routers/v0/user_view.go)
+    │  1. Bind JSON → input DTO
+    │  2. Validate (infra/validator)
+    │  3. Map input → entity.UserEntity
+    ▼
+Use case (internal/usecase/user_usecase.go)
+    │  Business rules, orchestration
+    ▼
+Repository interface (internal/usecase/interfaces.go)
+    ▼
+Repository implementation (infra/postgres/repository/user_repository.go)
+    │  entity → model (mapper)
+    │  GORM query → PostgreSQL
+    │  model → entity (mapper)
+    ▼
+Back up through use case → handler
+    │  Map entity → output DTO
+    ▼
+JSON Response
 ```
 
 ## Architecture
 
-The dependency rule is enforced by Go's package system. Each layer imports only inward:
-
 ```
-cmd/app
-  └── internal/app          (composition root — imports everything once)
-        ├── internal/usecase      (business logic)
-        │     └── internal/entity (domain structs)
-        └── infra/                (postgres, logger, validator, httpserver)
-              └── internal/entity (for model mappers)
-
-internal/controller/rest
-  └── internal/usecase interfaces (never concrete types)
+┌─────────────────────────────────────────────────────┐
+│                  internal/entity                    │  no deps
+├─────────────────────────────────────────────────────┤
+│                  internal/usecase                   │  → entity
+├─────────────────────────────────────────────────────┤
+│              internal/controller/rest               │  → usecase interfaces
+├─────────────────────────────────────────────────────┤
+│  infra/ (postgres, logger, validator, httpserver)   │  → entity (models)
+├─────────────────────────────────────────────────────┤
+│                 internal/app                        │  imports all (once)
+└─────────────────────────────────────────────────────┘
 ```
 
-`internal/` packages cannot be imported by external modules (Go enforces this). The only place that crosses all layers is `internal/app/app.go` — the composition root.
+Each layer imports only inward. `internal/` is Go-enforced: external packages cannot import it. The only place that crosses all layers is `internal/app/app.go`.
 
 ## Dependency Injection
 
-Dependencies flow inward through constructors. Use cases receive repository interfaces, not concrete implementations:
+Constructors receive dependencies as interfaces. Concrete types never leak upward:
 
 ```go
-// Declare what you need
 type UserRepo interface {
     GetById(ctx context.Context, user entity.UserEntity) (entity.UserEntity, error)
 }
 
-// Receive it via constructor
-type UserUseCase struct {
-    repo UserRepo
-}
+type UserUseCase struct{ repo UserRepo }
 
 func NewUser(r UserRepo) *UserUseCase {
     return &UserUseCase{repo: r}
 }
 ```
 
-To swap PostgreSQL for another database, write a new struct that satisfies `UserRepo` and wire it in `internal/app/app.go`. No use-case code changes.
+To replace PostgreSQL: implement `UserRepo` with any backend, wire it in `internal/app/app.go`. Zero changes in `internal/usecase`.
+
+## Testing
+
+Tests are co-located with the source they cover. Mocks are generated from `internal/usecase/interfaces.go`:
+
+```sh
+make mock   # regenerate after changing interfaces
+make test   # go test -v -cover -race ./internal/...
+```
+
+**Coverage targets:**
+
+| Package | Strategy |
+|---|---|
+| `internal/usecase` | Unit tests with mock repository |
+| `internal/controller/rest/routers/v0` | Handler tests with mock use case |
+| `config`, `infra/validator`, `infra/logger` | Unit tests |
+| `infra/postgres/model` | Mapper round-trip tests |
+| `infra/httpserver` | Server option tests |
+| `infra/postgres/repository` | Integration tests (requires DB) |
+
+Packages excluded from coverage: `mocks/`, `docs/`, `cmd/`, `infra/postgres/repository/`, `internal/app/`.
 
 ## Adding a New Domain
 
-Example: adding `Product`.
+Example: `Product`.
 
-**1. Domain entity** — `internal/entity/product_entity.go`
+**1.** `internal/entity/product_entity.go`
 ```go
 type ProductEntity struct {
     ID    uuid.UUID
@@ -214,7 +250,7 @@ type ProductEntity struct {
 }
 ```
 
-**2. GORM model + mappers** — `infra/postgres/model/product_model.go`
+**2.** `infra/postgres/model/product_model.go`
 ```go
 type ProductModel struct {
     ID    uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
@@ -222,58 +258,85 @@ type ProductModel struct {
     Price float64
 }
 func (ProductModel) TableName() string { return "product" }
-func ToProductModel(e entity.ProductEntity) ProductModel { ... }
+func ToProductModel(e entity.ProductEntity) ProductModel  { ... }
 func ToProductEntity(m ProductModel) entity.ProductEntity { ... }
 ```
 
-**3. Repository interface** — add to `internal/usecase/interfaces.go`
+**3.** Add to `internal/usecase/interfaces.go`:
 ```go
+Product interface {
+    CreateProduct(context.Context, entity.ProductEntity) (entity.ProductEntity, error)
+    GetProductById(context.Context, entity.ProductEntity) (entity.ProductEntity, error)
+}
+
 ProductRepo interface {
     Create(context.Context, entity.ProductEntity) (entity.ProductEntity, error)
     GetById(context.Context, entity.ProductEntity) (entity.ProductEntity, error)
 }
+
+// Add to UseCases aggregator:
+ProductUseCase() Product
 ```
 
-**4. Repository implementation** — `infra/postgres/repository/product_repository.go`
+**4.** `infra/postgres/repository/product_repository.go`
 ```go
 type ProductRepo struct{ *BaseRepo[model.ProductModel] }
 ```
 
-**5. Use case interface + implementation** — `internal/usecase/interfaces.go` + `internal/usecase/product_usecase.go`
+**5.** `internal/usecase/product_usecase.go` — business logic
 
-**6. Wire** — `internal/app/app.go`: add to `AutoMigrate` and `NewAppUseCases`
+**6.** `internal/app/app.go` — register in `AutoMigrate` + `NewAppUseCases`
 
-**7. Handlers + DTOs** — `internal/controller/rest/routers/v0/product_view.go`, `input/`, `output/`
+**7.** `internal/controller/rest/routers/v0/product_view.go` — handlers
 
-**8. Regenerate mocks**
+**8.** `internal/controller/rest/input/product_input.go`, `output/product_output.go` — DTOs
+
+**9.**
 ```sh
-make mock
+make mock  # regenerate mocks
 ```
 
 ## API Versioning
 
-Routes are namespaced by version. To add v1:
+Routes namespace by version prefix. To add v1:
 
-1. Create `internal/controller/rest/routers/v1/` with new handlers
-2. Register in `internal/controller/rest/router.go`:
+```sh
+mkdir -p internal/controller/rest/routers/v1
+```
+
+Register in `internal/controller/rest/router.go`:
 
 ```go
 v0.NewUserRoutes(h, l, v, uc.UserUseCase())
 v1.NewProductRoutes(h, l, v, uc.ProductUseCase())
 ```
 
-v0 and v1 can coexist indefinitely.
+Both versions coexist. v0 routes remain unchanged.
 
 ## Development Commands
 
 ```sh
-make run          # start postgres (docker) + run app locally
-make test         # go test -v -cover -race ./internal/...
-make swag         # regenerate Swagger docs
-make mock         # regenerate mocks from interfaces.go
+# Run
+make run              # start postgres + run app
+
+# Test
+make test             # run tests with coverage and race detector
+
+# Docs
+make swag             # regenerate Swagger from annotations
+
+# Mocks
+make mock             # regenerate mocks from interfaces.go
+
+# Lint
 make linter-golangci  # run golangci-lint
 
+# Install dev tools
+make bin-dependencies # install swag + mockgen binaries
+
 # Docker
-docker-compose up -d          # start postgres + app
-docker-compose up -d postgres # start only postgres
+docker-compose up -d              # start postgres + app
+docker-compose up -d postgres     # postgres only
+docker-compose down               # stop all
+docker-compose logs -f app        # stream app logs
 ```
