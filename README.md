@@ -183,15 +183,15 @@ JSON Response
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                  internal/entity                     │  no deps
+│                  internal/entity                    │  no deps
 ├─────────────────────────────────────────────────────┤
-│                  internal/usecase                    │  → entity
+│                  internal/usecase                   │  → entity
 ├─────────────────────────────────────────────────────┤
-│              internal/controller/rest                │  → usecase interfaces
+│              internal/controller/rest               │  → usecase interfaces
 ├─────────────────────────────────────────────────────┤
-│  infra/ (postgres, logger, validator, httpserver)    │  → entity (models)
+│  infra/ (postgres, logger, validator, httpserver)   │  → entity (models)
 ├─────────────────────────────────────────────────────┤
-│                 internal/app                         │  imports all (once)
+│                 internal/app                        │  imports all (once)
 └─────────────────────────────────────────────────────┘
 ```
 
