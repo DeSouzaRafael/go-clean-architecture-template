@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	defaultConnAttempts = 10
-	defaultConnTimeout  = 10 * time.Second
+	defaultConnAttempts     = 10
+	defaultConnTimeout      = time.Second
+	defaultConnTotalTimeout = 100 * time.Second
 )
 
 type Options struct {
@@ -40,7 +41,7 @@ func NewPostgres(opts Options) (*Postgres, error) {
 	sqlDB.SetMaxIdleConns(opts.MaxIdleConns)
 	sqlDB.SetConnMaxLifetime(opts.ConnMaxLifetime)
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultConnTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultConnTotalTimeout)
 	defer cancel()
 
 	for i := 0; i < defaultConnAttempts; i++ {

@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
@@ -32,5 +33,5 @@ func formatValidationErrors(errs validator.ValidationErrors) error {
 			err.Field(), err.Tag(),
 		)
 	}
-	return fmt.Errorf(messages)
+	return errors.New(messages)
 }
