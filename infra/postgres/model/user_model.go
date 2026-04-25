@@ -8,7 +8,7 @@ import (
 )
 
 type UserModel struct {
-	ID        uuid.UUID  `gorm:"type:uuid;default:gen_random_uuid()"`
+	ID        uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	Name      string
 	Phone     string
 	CreatedAt time.Time  `gorm:"<-:create"`
