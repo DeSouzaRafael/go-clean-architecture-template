@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	defaultConnAttempts     = 10
-	defaultConnTimeout      = time.Second
-	defaultConnTotalTimeout = 100 * time.Second
+	defaultConnAttempts = 10
+	defaultConnTimeout  = time.Second
+	defaultPingTimeout  = 10 * time.Second
 )
 
 type Options struct {
@@ -37,15 +37,21 @@ func NewPostgres(opts Options) (*Postgres, error) {
 		return nil, fmt.Errorf("failed to get sql.DB: %w", err)
 	}
 
-	sqlDB.SetMaxOpenConns(opts.MaxOpenConns)
-	sqlDB.SetMaxIdleConns(opts.MaxIdleConns)
-	sqlDB.SetConnMaxLifetime(opts.ConnMaxLifetime)
-
-	ctx, cancel := context.WithTimeout(context.Background(), defaultConnTotalTimeout)
-	defer cancel()
+	if opts.MaxOpenConns > 0 {
+		sqlDB.SetMaxOpenConns(opts.MaxOpenConns)
+	}
+	if opts.MaxIdleConns > 0 {
+		sqlDB.SetMaxIdleConns(opts.MaxIdleConns)
+	}
+	if opts.ConnMaxLifetime > 0 {
+		sqlDB.SetConnMaxLifetime(opts.ConnMaxLifetime)
+	}
 
 	for i := 0; i < defaultConnAttempts; i++ {
-		if err = sqlDB.PingContext(ctx); err == nil {
+		pingCtx, pingCancel := context.WithTimeout(context.Background(), defaultPingTimeout)
+		err = sqlDB.PingContext(pingCtx)
+		pingCancel()
+		if err == nil {
 			break
 		}
 		if i < defaultConnAttempts-1 {
