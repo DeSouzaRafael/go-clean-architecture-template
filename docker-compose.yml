@@ -1,15 +1,14 @@
-version: '3.9'
 services:
 
   postgres:
-    container_name: postgres
-    image: postgres
+    container_name: go_clean_postgres
+    image: postgres:16-alpine
     volumes:
       - pg-data:/var/lib/postgresql/data
     environment:
-      POSTGRES_USER: 'postgres'
-      POSTGRES_PASSWORD: 'postgres'
-      POSTGRES_DB: 'postgres'
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
     ports:
       - 5434:5432
     healthcheck:
@@ -20,17 +19,14 @@ services:
 
   app:
     build: .
-    container_name: app
-    image: app
-    environment:
-      ENV: 'dev'
+    container_name: go_clean_app
+    image: go_clean_app
+    env_file: .env
     ports:
       - 8080:8080
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - .env:/config/.env
 
 volumes:
   pg-data:
