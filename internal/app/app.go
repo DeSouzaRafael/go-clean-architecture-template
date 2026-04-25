@@ -52,7 +52,7 @@ func Run(cfg *config.Config) {
 	l.Info("Server is running...")
 	select {
 	case s := <-interrupt:
-		l.Info("app - Run - signal: " + s.String())
+		l.Info("app - Run - signal: %s", s.String())
 		if err := httpServer.Shutdown(); err != nil {
 			l.Error(fmt.Errorf("app - Run - httpServer.Shutdown: %w", err))
 		}
